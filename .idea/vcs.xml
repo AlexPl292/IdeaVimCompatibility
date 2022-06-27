@@ -2,5 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/test/IdeaVIM" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/test/ideavim-sneak" vcs="Git" />
   </component>
 </project>
