@@ -43,7 +43,7 @@ func main() {
 	}
 
 	log.Printf("Update gradle wrapper")
-	cmd := exec.Command("gradle", "wrapper", "--gradle-version", "7.4.2")
+	cmd := exec.Command("./gradlew", "wrapper", "--gradle-version", "7.4.2")
 	cmd.Dir = filepath.Join(currDir, "test")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
