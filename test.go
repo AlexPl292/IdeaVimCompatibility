@@ -12,13 +12,16 @@ import (
 )
 
 func main() {
+	log.Printf("Removing old directory")
 	if err := os.RemoveAll("test"); err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("Creating old directory")
 	if err := os.Mkdir("test", os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
 
+	log.Printf("Clone ideavim-sneak plugin")
 	if _, err := git.PlainClone("test", false, &git.CloneOptions{
 		URL:      "https://github.com/Mishkun/ideavim-sneak.git",
 		Progress: os.Stdout,
@@ -26,6 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Printf("Clone ideavim plugin")
 	if _, err := git.PlainClone("test/IdeaVIM", false, &git.CloneOptions{
 		URL:      "https://github.com/JetBrains/ideavim.git",
 		Progress: os.Stdout,
@@ -38,6 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Printf("Update gradle wrapper")
 	cmd := exec.Command("gradle", "wrapper", "--gradle-version", "7.4.2")
 	cmd.Dir = filepath.Join(currDir, "test")
 	out, err := cmd.CombinedOutput()
@@ -47,6 +52,7 @@ func main() {
 	}
 	fmt.Printf("%s\n", out)
 
+	log.Printf("Update files")
 	input, err := ioutil.ReadFile("test/build.gradle.kts")
 	if err != nil {
 		fmt.Println(err)
@@ -89,6 +95,7 @@ func main() {
 
 	// ------
 
+	log.Printf("Run build")
 	cmd = exec.Command("./gradlew", "build", "-x", "test", "-x", "buildSearchableOptions")
 	cmd.Dir = filepath.Join(currDir, "test")
 	out, err = cmd.CombinedOutput()
