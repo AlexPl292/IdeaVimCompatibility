@@ -46,7 +46,7 @@ func checkEasyMotion(dirName string) {
 		output := bytes.Replace(s, []byte("kotlin(\"jvm\") version \"1.6.21\""), []byte("kotlin(\"jvm\")"), -1)
 		output = bytes.Replace(output, []byte("id(\"org.jetbrains.intellij\") version \"1.6.0\""), []byte("id(\"org.jetbrains.intellij\")"), -1)
 
-		output = bytes.Replace(output, []byte("implementation(project(\":vim-engine\"))"), []byte("api(project(\":IdeaVIM:vim-engine\"))"), -1)
+		output = bytes.Replace(output, []byte("api(project(\":vim-engine\"))"), []byte("api(project(\":IdeaVIM:vim-engine\"))"), -1)
 
 		return output
 	})
