@@ -9,99 +9,105 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
+	checkSneak("vim-sneak")
+}
+
+func checkSneak(dirName string) {
 	log.Printf("Removing old directory")
-	if err := os.RemoveAll("test"); err != nil {
+	if err := os.RemoveAll(dirName); err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("Creating old directory")
-	if err := os.Mkdir("test", os.ModePerm); err != nil {
+	if err := os.Mkdir(dirName, os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Clone ideavim-sneak plugin")
-	if _, err := git.PlainClone("test", false, &git.CloneOptions{
-		URL:      "https://github.com/Mishkun/ideavim-sneak.git",
-		Progress: os.Stdout,
-	}); err != nil {
-		log.Fatal(err)
+	cloneRepo(dirName, "https://github.com/Mishkun/ideavim-sneak.git")
+	cloneRepo(dirName+"/IdeaVIM", "https://github.com/JetBrains/ideavim.git")
+
+	currDir := getWorkingDir()
+
+	runCmd("./gradlew wrapper --gradle-version 7.4.2", filepath.Join(currDir, dirName))
+
+	updateFile(dirName+"/build.gradle.kts", func(s []byte) []byte {
+		output := bytes.Replace(s, []byte("id(\"org.jetbrains.intellij\") version \"1.0\""), []byte("id(\"org.jetbrains.intellij\") version \"1.6.0\""), -1)
+		output = bytes.Replace(output, []byte("kotlin(\"jvm\") version \"1.4.10\""), []byte("kotlin(\"jvm\") version \"1.6.21\""), -1)
+		output = bytes.Replace(output, []byte("version.set(\"2020.1\")"), []byte("version.set(\"LATEST-EAP-SNAPSHOT\")"), -1)
+		output = bytes.Replace(output, []byte("plugins.set(listOf(\"IdeaVIM:0.61\"))"), []byte("plugins.set(listOf(project(\":IdeaVIM\")))"), -1)
+		return output
+	})
+
+	updateFile(dirName+"/IdeaVIM/build.gradle.kts", func(s []byte) []byte {
+		return bytes.Replace(s, []byte("implementation(project(\":vim-engine\"))"), []byte("implementation(project(\":IdeaVIM:vim-engine\"))"), -1)
+	})
+
+	done := funcName(dirName+"/settings.gradle.kts", "include(\"IdeaVIM\", \"IdeaVIM:vim-engine\")")
+	if done {
+		return
 	}
 
-	log.Printf("Clone ideavim plugin")
-	if _, err := git.PlainClone("test/IdeaVIM", false, &git.CloneOptions{
-		URL:      "https://github.com/JetBrains/ideavim.git",
-		Progress: os.Stdout,
-	}); err != nil {
-		log.Fatal(err)
-	}
+	runCmd("./gradlew build -x test -x buildSearchableOptions", filepath.Join(currDir, dirName))
+}
 
-	currDir, err := os.Getwd()
+func funcName(fileName string, str string) bool {
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0644)
+
+	_, err = f.WriteString(str)
+
+	err = f.Close()
 	if err != nil {
-		log.Fatal(err)
+		return true
+	}
+	return false
+}
+
+func updateFile(filePath string, modification func([]byte) []byte) {
+	log.Printf("Update " + filePath)
+	input, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	log.Printf("Update gradle wrapper")
-	cmd := exec.Command("./gradlew", "wrapper", "--gradle-version", "7.4.2")
-	cmd.Dir = filepath.Join(currDir, "test")
+	output := modification(input)
+
+	if err = ioutil.WriteFile(filePath, output, 0666); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func runCmd(command string, dirName string) {
+	log.Printf("run command: " + command)
+	fields := strings.Fields(command)
+	cmd := exec.Command(fields[0], fields[1:]...)
+	cmd.Dir = dirName
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf(string(out))
 		log.Fatal(err.Error())
 	}
 	fmt.Printf("%s\n", out)
+}
 
-	log.Printf("Update files")
-	input, err := ioutil.ReadFile("test/build.gradle.kts")
+func getWorkingDir() string {
+	currDir, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
+	return currDir
+}
 
-	output := bytes.Replace(input, []byte("id(\"org.jetbrains.intellij\") version \"1.0\""), []byte("id(\"org.jetbrains.intellij\") version \"1.6.0\""), -1)
-	output = bytes.Replace(output, []byte("kotlin(\"jvm\") version \"1.4.10\""), []byte("kotlin(\"jvm\") version \"1.6.21\""), -1)
-	output = bytes.Replace(output, []byte("version.set(\"2020.1\")"), []byte("version.set(\"LATEST-EAP-SNAPSHOT\")"), -1)
-	output = bytes.Replace(output, []byte("plugins.set(listOf(\"IdeaVIM:0.61\"))"), []byte("plugins.set(listOf(project(\":IdeaVIM\")))"), -1)
-
-	if err = ioutil.WriteFile("test/build.gradle.kts", output, 0666); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+func cloneRepo(dirName string, url string) {
+	log.Printf("Clone " + url)
+	if _, err := git.PlainClone(dirName, false, &git.CloneOptions{
+		URL:      url,
+		Progress: os.Stdout,
+	}); err != nil {
+		log.Fatal(err)
 	}
-
-	input, err = ioutil.ReadFile("test/IdeaVIM/build.gradle.kts")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	output = bytes.Replace(input, []byte("implementation(project(\":vim-engine\"))"), []byte("implementation(project(\":IdeaVIM:vim-engine\"))"), -1)
-
-	if err = ioutil.WriteFile("test/IdeaVIM/build.gradle.kts", output, 0666); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	// ------
-
-	f, err := os.OpenFile("test/settings.gradle.kts", os.O_APPEND|os.O_WRONLY, 0644)
-
-	_, err = f.WriteString("include(\"IdeaVIM\", \"IdeaVIM:vim-engine\")")
-
-	err = f.Close()
-	if err != nil {
-		return
-	}
-
-	// ------
-
-	log.Printf("Run build")
-	cmd = exec.Command("./gradlew", "build", "-x", "test", "-x", "buildSearchableOptions")
-	cmd.Dir = filepath.Join(currDir, "test")
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf(string(out))
-		log.Fatal(err.Error())
-	}
-	fmt.Printf("%s\n", out)
 }
