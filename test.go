@@ -45,7 +45,7 @@ func checkSneak(dirName string) {
 		return bytes.Replace(s, []byte("implementation(project(\":vim-engine\"))"), []byte("implementation(project(\":IdeaVIM:vim-engine\"))"), -1)
 	})
 
-	done := funcName(dirName+"/settings.gradle.kts", "include(\"IdeaVIM\", \"IdeaVIM:vim-engine\")")
+	done := appendToFile(dirName+"/settings.gradle.kts", "include(\"IdeaVIM\", \"IdeaVIM:vim-engine\")")
 	if done {
 		return
 	}
@@ -53,7 +53,7 @@ func checkSneak(dirName string) {
 	runCmd("./gradlew build -x test -x buildSearchableOptions", filepath.Join(currDir, dirName))
 }
 
-func funcName(fileName string, str string) bool {
+func appendToFile(fileName string, str string) bool {
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0644)
 
 	_, err = f.WriteString(str)
