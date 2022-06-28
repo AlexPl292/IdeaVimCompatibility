@@ -13,18 +13,62 @@ import (
 )
 
 func main() {
+	checkEasyMotion("easymotion")
 	checkSneak("vim-sneak")
 }
 
+func checkEasyMotion(dirName string) {
+	recreateDir(dirName)
+
+	cloneRepo(dirName, "https://github.com/AlexPl292/IdeaVim-EasyMotion.git")
+	cloneRepo(dirName+"/IdeaVIM", "https://github.com/JetBrains/ideavim.git")
+	cloneRepo(dirName+"/AceJump", "https://github.com/acejump/AceJump.git")
+
+	currDir := getWorkingDir()
+
+	updateFile(dirName+"/gradle.properties", func(s []byte) []byte {
+		output := bytes.Replace(s, []byte("ideaVimFromMarketplace=true"), []byte("ideaVimFromMarketplace=false"), -1)
+		output = bytes.Replace(output, []byte("aceJumpFromMarketplace=true"), []byte("aceJumpFromMarketplace=false"), -1)
+		return output
+	})
+
+	updateFile(dirName+"/AceJump/build.gradle.kts", func(s []byte) []byte {
+		output := bytes.Replace(s, []byte("kotlin(\"jvm\") version \"1.7.0\""), []byte("kotlin(\"jvm\")"), -1)
+		output = bytes.Replace(output, []byte("id(\"org.jetbrains.intellij\") version \"1.6.0\""), []byte("id(\"org.jetbrains.intellij\")"), -1)
+
+		output = bytes.Replace(output, []byte("kotlin.jvmToolchain {\n  run {\n    languageVersion.set(JavaLanguageVersion.of(11))\n  }\n}"), []byte("//kotlin.jvmToolchain {\n//  run {\n//    languageVersion.set(JavaLanguageVersion.of(11))\n//  }\n//}"), -1)
+		output = bytes.Replace(output, []byte("version.set(\"2022.1.1\")"), []byte("version.set(\"LATEST-EAP-SNAPSHOT\")"), -1)
+
+		return output
+	})
+
+	updateFile(dirName+"/IdeaVIM/build.gradle.kts", func(s []byte) []byte {
+		output := bytes.Replace(s, []byte("kotlin(\"jvm\") version \"1.6.21\""), []byte("kotlin(\"jvm\")"), -1)
+		output = bytes.Replace(output, []byte("id(\"org.jetbrains.intellij\") version \"1.6.0\""), []byte("id(\"org.jetbrains.intellij\")"), -1)
+
+		output = bytes.Replace(output, []byte("implementation(project(\":vim-engine\"))"), []byte("implementation(project(\":IdeaVIM:vim-engine\"))"), -1)
+
+		return output
+	})
+
+	updateFile(dirName+"/settings.gradle.kts", func(s []byte) []byte {
+		output := bytes.Replace(s, []byte("include(\"IdeaVIM\", \"AceJump\")"), []byte("include(\"IdeaVIM\", \"AceJump\", \"IdeaVIM:vim-engine\")"), -1)
+
+		return output
+	})
+
+	updateFile(dirName+"/build.gradle", func(s []byte) []byte {
+		output := bytes.Replace(s, []byte("version = \"2021.3.1\""), []byte("version = \"LATEST-EAP-SNAPSHOT\""), -1)
+		output = bytes.Replace(output, []byte("id \"org.jetbrains.kotlin.jvm\" version \"1.5.0\""), []byte("id \"org.jetbrains.kotlin.jvm\" version \"1.6.0\""), -1)
+
+		return output
+	})
+
+	runCmd("./gradlew build -x test -x buildSearchableOptions" /*+" -Dorg.gradle.java.home=/Users/Alex.Plate/Library/Java/JavaVirtualMachines/corretto-11.0.11/Contents/Home\n"*/, filepath.Join(currDir, dirName))
+}
+
 func checkSneak(dirName string) {
-	log.Printf("Removing old directory")
-	if err := os.RemoveAll(dirName); err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Creating old directory")
-	if err := os.Mkdir(dirName, os.ModePerm); err != nil {
-		log.Fatal(err)
-	}
+	recreateDir(dirName)
 
 	cloneRepo(dirName, "https://github.com/Mishkun/ideavim-sneak.git")
 	cloneRepo(dirName+"/IdeaVIM", "https://github.com/JetBrains/ideavim.git")
@@ -51,6 +95,17 @@ func checkSneak(dirName string) {
 	}
 
 	runCmd("./gradlew build -x test -x buildSearchableOptions", filepath.Join(currDir, dirName))
+}
+
+func recreateDir(dirName string) {
+	log.Printf("Removing old directory")
+	if err := os.RemoveAll(dirName); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Creating old directory")
+	if err := os.Mkdir(dirName, os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func appendToFile(fileName string, str string) bool {
