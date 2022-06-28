@@ -46,7 +46,7 @@ func checkEasyMotion(dirName string) {
 		output := bytes.Replace(s, []byte("kotlin(\"jvm\") version \"1.6.21\""), []byte("kotlin(\"jvm\")"), -1)
 		output = bytes.Replace(output, []byte("id(\"org.jetbrains.intellij\") version \"1.6.0\""), []byte("id(\"org.jetbrains.intellij\")"), -1)
 
-		output = bytes.Replace(output, []byte("implementation(project(\":vim-engine\"))"), []byte("implementation(project(\":IdeaVIM:vim-engine\"))"), -1)
+		output = bytes.Replace(output, []byte("implementation(project(\":vim-engine\"))"), []byte("api(project(\":IdeaVIM:vim-engine\"))"), -1)
 
 		return output
 	})
@@ -64,6 +64,7 @@ func checkEasyMotion(dirName string) {
 		return output
 	})
 
+	// It's needed to use java 11 or something (well, definitely NOT 18)
 	runCmd("./gradlew build -x test -x buildSearchableOptions" /*+" -Dorg.gradle.java.home=/Users/Alex.Plate/Library/Java/JavaVirtualMachines/corretto-11.0.11/Contents/Home\n"*/, filepath.Join(currDir, dirName))
 }
 
