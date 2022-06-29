@@ -65,7 +65,7 @@ func checkEasyMotion(dirName string) {
 	})
 
 	// It's needed to use java 11 or something (well, definitely NOT 18)
-	runCmd("./gradlew build -x test -x buildSearchableOptions -x :IdeaVIM:ktlintMainSourceSetCheck" /*+" -Dorg.gradle.java.home=/Users/Alex.Plate/Library/Java/JavaVirtualMachines/corretto-11.0.11/Contents/Home\n"*/, filepath.Join(currDir, dirName))
+	runCmd("./gradlew build -x test -x buildSearchableOptions -x :IdeaVIM:ktlintMainSourceSetCheck -x :IdeaVIM:ktlintTestSourceSetCheck" /*+" -Dorg.gradle.java.home=/Users/Alex.Plate/Library/Java/JavaVirtualMachines/corretto-11.0.11/Contents/Home\n"*/, filepath.Join(currDir, dirName))
 }
 
 func checkSneak(dirName string) {
@@ -95,7 +95,7 @@ func checkSneak(dirName string) {
 		return
 	}
 
-	runCmd("./gradlew build -x test -x buildSearchableOptions -x :IdeaVIM:ktlintMainSourceSetCheck", filepath.Join(currDir, dirName))
+	runCmd("./gradlew build -x test -x buildSearchableOptions -x :IdeaVIM:ktlintMainSourceSetCheck -x :IdeaVIM:ktlintTestSourceSetCheck", filepath.Join(currDir, dirName))
 }
 
 func recreateDir(dirName string) {
